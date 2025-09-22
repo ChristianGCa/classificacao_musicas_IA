@@ -14,7 +14,7 @@ Música:
 
 print("Tentando ler")
 
-df = pd.read_csv("/home/christian/Downloads/spotify_millsongdata_teste2.csv")
+df = pd.read_csv("/home/christian/Downloads/spotify_millsongdata_teste_30.csv")
 
 print("leu")
 
