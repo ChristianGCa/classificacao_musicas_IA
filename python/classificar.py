@@ -28,5 +28,3 @@ df["sentimento"] = resultados
 
 print(df[["artist", "song", "sentimento"]])
 
-
-df.to_csv("musicas_classificadas.csv", index=False)
