@@ -8,7 +8,7 @@ int main() {
     FILE *file_pointer;
     char linha[MAX_LINE];
 
-    file_pointer = fopen("/home/christian/Downloads/spotify_millsongdata_teste.csv", "r");
+    file_pointer = fopen("/home/christian/Documentos/CSVs_processados/spotify_millsongdata_SEM_QUEBRAS_LINHA.csv", "r");
     if (file_pointer == NULL) {
         perror("Erro ao abrir arquivo");
         return 1;
@@ -27,7 +27,7 @@ int main() {
         char *text   = strtok(NULL, ",");
 
         if (artist && song && text) {
-            printf("Artista: %s | Música: %s | Letra: %.10s...\n",
+            printf("Artista: %s | Música: %s | Letra: %.1024s...\n",
                    artist, song, text);
         }
     }
