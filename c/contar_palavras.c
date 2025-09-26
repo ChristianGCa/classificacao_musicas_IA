@@ -3,7 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#define MAX_LINE 2048
+#define MAX_LINE 8192
 #define MAX_WORD 128
 #define HASH_SIZE 100003  // número primo para tabela hash
 
@@ -85,6 +85,8 @@ int compare(const void *a, const void *b) {
 int main() {
     FILE *file_pointer;
     char linha[MAX_LINE];
+    int total_palavras = 0;
+    int total_linhas = 0;
 
     file_pointer = fopen("/home/christian/Documentos/CSVs_processados/spotify_millsongdata_SEM_QUEBRAS_LINHA.csv", "r");
     if (file_pointer == NULL) {
@@ -94,6 +96,7 @@ int main() {
 
     // Lê a primeira linha e descarta (cabeçalho)
     fgets(linha, MAX_LINE, file_pointer);
+    total_linhas = 1; // Cabeçalho
 
     while (fgets(linha, MAX_LINE, file_pointer)) {
         linha[strcspn(linha, "\n")] = 0;
@@ -104,6 +107,16 @@ int main() {
         char *text   = strtok(NULL, ",");
 
         if (text) {
+            total_linhas++; // Só conta linhas que têm texto válido
+            // Conta palavras antes de processar
+            char *temp_text = strdup(text);
+            char *token = strtok(temp_text, " \t\r\n");
+            while (token) {
+                total_palavras++;
+                token = strtok(NULL, " \t\r\n");
+            }
+            free(temp_text);
+            
             process_text(text);
         }
     }
@@ -126,6 +139,10 @@ int main() {
 
     qsort(arr, n, sizeof(WordCount), compare);
 
+    printf("\n=== ESTATÍSTICAS GERAIS ===\n");
+    printf("Linhas de dados processadas: %d\n", total_linhas - 1);
+    printf("Total de palavras processadas: %d\n", total_palavras);
+    printf("Palavras únicas encontradas: %d\n", n);
     printf("\n=== Ranking das palavras ===\n");
     for (int i = 0; i < 50 && i < n; i++) { // mostra top 50
         printf("%d. %s -> %d\n", i + 1, arr[i].word, arr[i].count);

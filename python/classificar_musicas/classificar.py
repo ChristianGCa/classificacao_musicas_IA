@@ -9,7 +9,7 @@ Não explique e não escreva mais nada além da categoria.
 Música:
 {letra}
 """
-    response = ollama.generate(model="gemma3:1b", prompt=prompt)
+    response = ollama.generate(model="mistral:latest", prompt=prompt)
     return response["response"].strip().lower()
 
 print("Tentando ler")
@@ -27,4 +27,3 @@ for i, letra in enumerate(df["text"], start=1):
 df["sentimento"] = resultados
 
 print(df[["artist", "song", "sentimento"]])
-
