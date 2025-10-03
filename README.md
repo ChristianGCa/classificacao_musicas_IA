@@ -1,10 +1,10 @@
 # Classificar Músicas com IA e contar palavras
 
-Este repositório contém programas para análise de letras de música usando um modelo de IA local e processamento paralelo com MPI para contar a ocorrência de cada palavra das letras em geral.
+Este repositório contém programas para análise de letras de música usando um modelo de IA local e processamento paralelo com MPI para contar a ocorrência de cada palavra das letras em geral, bem como os artistas com maior núemro de múscas.
 
 ## Dataset
 
-Este projeto utiliza o dataset [Spotify Million Song Dataset](https://www.kaggle.com/datasets/notshrirang/spotify-million-song-dataset) do Kaggle, que contém informações sobre músicas e suas letras.
+Este projeto utiliza o dataset [Spotify Million Song Dataset](https://www.kaggle.com/datasets/notshrirang/spotify-million-song-dataset) do Kaggle, que contém informações sobre artistas, músicas e suas letras.
 
 ## Pré-requisitos
 
@@ -19,6 +19,7 @@ Este projeto utiliza o dataset [Spotify Million Song Dataset](https://www.kaggle
 ## Como Executar
 
 ### 1. Pré-processamento dos dados (Python)
+Essa fase consiste em remover as quebras de linha da coluna "text" do csv
 
 ```bash
 source env/bin/activate
