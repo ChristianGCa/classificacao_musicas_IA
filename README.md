@@ -1,6 +1,6 @@
 # Classificar Músicas com IA e contar palavras
 
-Este repositório contém programas para análise de letras de música usando um modelo de IA local e processamento paralelo com MPI para contar a ocorrência de cada palavra das letras em geral, bem como os artistas com maior núemro de múscas.
+Este repositório contém programas para análise de letras de música usando um modelo de IA local e processamento paralelo com MPI para contar a ocorrência de cada palavra das letras em geral, bem como os artistas com maior número de múscas.
 
 ## Dataset
 
