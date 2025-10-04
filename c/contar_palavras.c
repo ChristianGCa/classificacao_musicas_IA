@@ -2,10 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <signal.h> // Para lidar com sinais como Ctrl+C
 
 #define MAX_LINE 8192
 #define MAX_WORD 128
 #define HASH_SIZE 100003  // número primo para tabela hash
+
+char temp_output_filename[256];
+char final_output_filename[256];
 
 // Estrutura para armazenar palavra e contagem
 typedef struct Word {
@@ -24,6 +28,13 @@ unsigned long hash(const char *str) {
         h = ((h << 5) + h) + c;
     }
     return h % HASH_SIZE;
+}
+
+// Função para limpar o arquivo temporário em caso de interrupção
+void cleanup_on_interrupt(int signum) {
+    fprintf(stderr, "Interrupção! Limpando arquivo temporário %s...\n", temp_output_filename);
+    remove(temp_output_filename); // Tenta remover o arquivo temporário
+    exit(signum);
 }
 
 // Adiciona palavra no hash
@@ -147,6 +158,36 @@ int main() {
     for (int i = 0; i < 50 && i < n; i++) { // mostra top 50
         printf("%d. %s -> %d\n", i + 1, arr[i].word, arr[i].count);
     }
+
+    // Salva o ranking em um arquivo CSV de forma segura
+    strcpy(final_output_filename, "ranking_palavras.csv");
+    sprintf(temp_output_filename, "%s.tmp", final_output_filename);
+
+    // Registra o manipulador de sinal para Ctrl+C
+    signal(SIGINT, cleanup_on_interrupt);
+
+    FILE *output_file = fopen(temp_output_filename, "w");
+    if (output_file == NULL) {
+        perror("Erro ao abrir arquivo temporário para escrita");
+        free(arr);
+        return 1;
+    }
+
+    fprintf(output_file, "Rank,Palavra,Contagem\n");
+    for (int i = 0; i < n; i++) {
+        fprintf(output_file, "%d,%s,%d\n", i + 1, arr[i].word, arr[i].count);
+    }
+    fclose(output_file);
+
+    // Renomeia o arquivo temporário para o nome final (operação atômica)
+    if (rename(temp_output_filename, final_output_filename) != 0) {
+        perror("Erro ao renomear arquivo temporário para final");
+        remove(temp_output_filename); // Tenta limpar o temporário se a renomeação falhar
+        free(arr);
+        return 1;
+    }
+
+    printf("\nRanking de palavras salvo com sucesso em '%s'\n", final_output_filename);
 
     free(arr);
     return 0;
