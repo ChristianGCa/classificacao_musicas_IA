@@ -12,7 +12,7 @@
 #define MAX_WORDS 100000
 #define HASH_SIZE 100003  // Tabela hash
 
-typedef struct Word {
+typedef struct Word {  // ESTRUTURA PARA ARMAZENAR AS PALAVRAS E AS CONTAGENS DE CADA OCORRÊNCIA
     char *text;
     int count;
     struct Word *next;
@@ -123,8 +123,14 @@ int main(int argc, char *argv[]) {
         }
 
         char linha[8192];
+        
+        
+        
         // Lê a primeira linha descartando o cabeçalho
         fgets(linha, sizeof(linha), f);
+
+
+        
         total_linhas = 1; // Cabeçalho
 
         while (fgets(linha, sizeof(linha), f)) {
