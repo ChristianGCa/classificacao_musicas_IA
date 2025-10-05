@@ -17,7 +17,7 @@ Não explique e não escreva mais nada além da categoria.
 Música:
 {text}
 """
-    response = ollama.generate(model="mistral:latest", prompt=prompt)
+    response = ollama.generate(model="gemma3:1b", prompt=prompt)
     return response["response"].strip().lower()
 
 def save_and_exit(results):
