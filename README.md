@@ -77,7 +77,7 @@ cd c
 
 Executar o programa usando o Makefile:
 ```bash
-make 1_run_seq_palavras
+make 1_1_run_seq_palavras
 ```
 
 ### 4. Executar os programas paralelos (MPI) de contagem
@@ -92,12 +92,12 @@ cd c
 
 Executar com 2 processos usando o Makefile:
 ```bash
-make 2_run_palavras_2
+make 1_2_run_palavras_2
 ```
 
 Executar com 8 processos usando o Makefile:
 ```bash
-make 2_run_palavras_8
+make 1_2_run_palavras_8
 ```
 
 **b) Contar apenas músicas (MPI): `2_contar_musicas_mpi`**
@@ -108,12 +108,12 @@ cd c
 
 Executar com 2 processos usando o Makefile:
 ```bash
-make 3_run_musicas_2
+make 2_run_musicas_2
 ```
 
 Executar com 8 processos usando o Makefile:
 ```bash
-make 3_run_musicas_8
+make 2_run_musicas_8
 ```
 
 **c) Contar palavras e músicas (MPI): `3_contar_palavras_e_musicas_mpi`**
@@ -124,12 +124,12 @@ cd c
 
 Executar com 2 processos:
 ```bash
-make 4_run_palavras_e_musicas_mpi_2
+make 3_run_palavras_e_musicas_mpi_2
 ```
 
 Executar com 8 processos:
 ```bash
-make 4_run_palavras_e_musicas_mpi_8
+make 3_run_palavras_e_musicas_mpi_8
 ```
 
 ### 5. Classificação com IA (Python)
@@ -153,4 +153,12 @@ python classificar.py
 Voltar para a raiz do projeto:
 ```bash
 cd ../..
+```
+
+### 6. Limpar executáveis e arquivos gerados (C)
+
+Para remover todos os executáveis compilados e o arquivo `ranking_palavras.csv` gerado, use o seguinte comando no diretório `c`:
+
+```bash
+make clean
 ```
