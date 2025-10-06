@@ -11,14 +11,12 @@
 #define MAX_ARTISTS 100000   // Número máximo de artistas únicos
 #define HASH_SIZE 100003     // Tabela hash
 
-// Estrutura para a Tabela Hash (Lista Encadeada)
 typedef struct ArtistNode {
     char *name;
     int count;
     struct ArtistNode *next;
 } ArtistNode;
 
-// Estrutura para o Array de Coleta
 typedef struct {
     char artist[MAX_ARTIST_LEN];
     int count;
@@ -29,14 +27,11 @@ unsigned long hash(const char *str) {
     unsigned long h = 5381;
     int c;
     while ((c = *str++)) {
-        h = ((h << 5) + h) + c;
+        h = ((h << 5) + h) + c; // Truque de otimização
     }
     return h % HASH_SIZE;
 }
 
-/**
- * @brief Adiciona ou incrementa a contagem de um artista na tabela hash local.
- */
 void add_artist(ArtistNode **hash_table, const char *a) {
     if (strlen(a) == 0) return;
 
@@ -57,30 +52,19 @@ void add_artist(ArtistNode **hash_table, const char *a) {
     hash_table[idx] = new_artist;
 }
 
-/**
- * @brief Extrai o nome do artista de uma linha do CSV e o adiciona à contagem.
- * * Assumimos que o delimitador é tabulação (\t) ou vírgula (,) e o artista é o primeiro campo.
- */
 void process_line(ArtistNode **hash_table, char *line) {
     // Faz uma cópia da linha, pois strtok altera a string original
     char line_copy[MAX_LINE_LENGTH];
     strncpy(line_copy, line, MAX_LINE_LENGTH - 1);
     line_copy[MAX_LINE_LENGTH - 1] = '\0';
-    
-    // O seu exemplo de CSV usa tabulação (\t) como delimitador, mas o código base usa vírgula (,)
-    // Vou usar a vírgula para manter a consistência com a lógica de tokenização do código base.
+
     char *artist = strtok(line_copy, ",");
 
     if (artist) {
-        // Remove espaços em branco antes/depois se houver (opcional, para limpeza)
-        // Simplificação: apenas adiciona
         add_artist(hash_table, artist);
     }
 }
 
-/**
- * @brief Converte a tabela hash local para um array para envio via MPI.
- */
 int hash_to_array(ArtistNode **hash_table, ArtistCount *artists) {
     int n = 0;
     for (int i = 0; i < HASH_SIZE; i++) {
@@ -96,7 +80,6 @@ int hash_to_array(ArtistNode **hash_table, ArtistCount *artists) {
     return n;
 }
 
-// Função de comparação para qsort (do maior para o menor)
 int comparar_contagem(const void *a, const void *b) {
     ArtistCount *pa = (ArtistCount *)a;
     ArtistCount *pb = (ArtistCount *)b;
@@ -123,7 +106,7 @@ int main(int argc, char *argv[]) {
     int total_linhas = 0;
     char **linhas = NULL;
     int num_linhas = 0;
-    char *filepath = NULL; // Usado para armazenar o caminho do arquivo
+    char *filepath = NULL; // armazenar o caminho do arquivo
 
     if (rank == 0) {
         if (argc < 2) {
@@ -132,7 +115,7 @@ int main(int argc, char *argv[]) {
         }
         filepath = argv[1];
 
-        // Processo 0 lê o arquivo e conta linhas
+        // Processo 0 lê o arquivo e conta as linhas
         FILE *f = fopen(filepath, "r");
         if (!f) {
             perror("Erro ao abrir arquivo");
@@ -157,20 +140,13 @@ int main(int argc, char *argv[]) {
         num_linhas = 0; // Vai contar apenas as linhas lidas
         
         while (fgets(linha, sizeof(linha), f)) {
-            // Remove a quebra de linha
             linha[strcspn(linha, "\n")] = 0;
-            
-            // Aloca e copia a linha inteira para o array de linhas
             linhas[num_linhas] = strdup(linha);
             num_linhas++;
         }
         fclose(f);
     }
-    
-    // Distribui o nome do arquivo para os outros processos, caso precisem (neste código não é estritamente necessário)
-    // Se fosse usado MPI-IO, o broadcast do filepath seria crucial.
-    
-    // Broadcast do número total de linhas
+
     MPI_Bcast(&num_linhas, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     int linhas_por_processo = num_linhas / size;
@@ -199,63 +175,49 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // Cada processo (incluindo o 0) processa seu bloco de linhas
     for (int i = 0; i < minhas_linhas; i++) {
         char linha[MAX_LINE_LENGTH];
         
         if (rank == 0) {
             int linha_idx = inicio_linha + i;
-            // O processo 0 copia do seu array de linhas lidas
             strcpy(linha, linhas[linha_idx]);
         } else {
-            // Outros processos recebem a linha do processo 0
             MPI_Recv(linha, MAX_LINE_LENGTH, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
-
-        // Processamento da linha para contar o artista
         process_line(hash_table, linha);
         total_linhas_processadas++;
     }
 
-    // Converte hash table local para array para o MPI
     ArtistCount *artists_locais = malloc(MAX_ARTISTS * sizeof(ArtistCount));
     int num_artists_local = hash_to_array(hash_table, artists_locais);
 
     printf("Processo %d: processou %d linhas, %d artistas únicos localmente\n", 
            rank, total_linhas_processadas, num_artists_local);
 
-    // =============================================================
-    // Coleta e Consolidação dos Resultados (Rank 0)
-    // =============================================================
     if (rank == 0) {
         ArtistCount *artists_finais = NULL;
         int num_finais = 0;
         
-        // Alocação inicial para o array final
         artists_finais = malloc(num_artists_local * sizeof(ArtistCount));
 
-        // 1. Adiciona seus próprios artistas
         for (int i = 0; i < num_artists_local; i++) {
             artists_finais[i] = artists_locais[i];
         }
         num_finais = num_artists_local;
         
-        // 2. Recebe artistas dos outros processos
         for (int proc = 1; proc < size; proc++) {
             int artists_recebidos;
             
-            // Recebe o número de artistas do processo
+
             MPI_Recv(&artists_recebidos, 1, MPI_INT, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             
             if (artists_recebidos == 0) continue;
             
             ArtistCount *artists_proc_array = malloc(artists_recebidos * sizeof(ArtistCount));
             
-            // Recebe o array de artistas (usando MPI_CHAR, pois o struct é heterogêneo)
             MPI_Recv(artists_proc_array, artists_recebidos * sizeof(ArtistCount), MPI_CHAR, 
                     proc, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             
-            // Consolida e adiciona artistas do processo
             for (int i = 0; i < artists_recebidos; i++) {
                 int encontrada = 0;
                 for (int j = 0; j < num_finais; j++) {
@@ -266,7 +228,6 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 if (!encontrada) {
-                    // Realoca o array final para adicionar um novo artista
                     artists_finais = (ArtistCount *)realloc(artists_finais, (num_finais + 1) * sizeof(ArtistCount));
                     if (artists_finais == NULL) {
                         fprintf(stderr, "Erro de realocação na consolidação.\n");
@@ -280,19 +241,16 @@ int main(int argc, char *argv[]) {
             free(artists_proc_array);
         }
 
-        // 3. Ordenar e Imprimir Ranking
         qsort(artists_finais, num_finais, sizeof(ArtistCount), comparar_contagem);
 
         end_time = MPI_Wtime();
 
-        printf("\n---- RANKING FINAL DE ARTISTAS ----\n");
-        printf("Total de músicas processadas: %d\n", num_linhas);
-        printf("Artistas únicos (consolidados): %d\n", num_finais);
+        printf("\nRANKING FINAL DE ARTISTAS\n");
+        printf("Músicas processadas: %d\n", num_linhas);
+        printf("Artistas únicos: %d\n", num_finais);
         printf("Tempo total de execução: %.4f segundos\n", end_time - start_time);
         
-        printf("\n--- Top 100 Artistas ---\n");
         printf("  Pos. | Contagem | Artista\n");
-        printf("-------|----------|--------------------------\n");
 
         for (int i = 0; i < 100 && i < num_finais; i++) {
             printf(" %4d | %8d | %s\n", i + 1, artists_finais[i].count, artists_finais[i].artist);
@@ -306,16 +264,12 @@ int main(int argc, char *argv[]) {
         free(artists_finais);
         
     } else {
-        // Outros processos enviam seus resultados para o Rank 0
-        // 1. Envia o número de artistas únicos
         MPI_Send(&num_artists_local, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
         
-        // 2. Envia o array de artistas (usa MPI_CHAR para enviar a estrutura como um bloco de bytes)
         MPI_Send(artists_locais, num_artists_local * sizeof(ArtistCount), MPI_CHAR, 
                 0, 1, MPI_COMM_WORLD);
     }
     
-    // Liberar memória das estruturas de dados locais em todos os processos
     for (int i = 0; i < HASH_SIZE; i++) {
         ArtistNode *node = hash_table[i];
         while (node) {
