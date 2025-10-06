@@ -14,7 +14,7 @@
 typedef struct ArtistNode {
     char *name;
     int count;
-    struct ArtistNode *next;
+    struct ArtistNode *next; // ponteiro para o próximo
 } ArtistNode;
 
 typedef struct {
@@ -22,12 +22,12 @@ typedef struct {
     int count;
 } ArtistCount;
 
-// Função Hash
+// Função Hash (DJB2)
 unsigned long hash(const char *str) {
     unsigned long h = 5381;
     int c;
     while ((c = *str++)) {
-        h = ((h << 5) + h) + c; // Truque de otimização
+        h = ((h << 5) + h) + c; // Truque de otimização para h * 33
     }
     return h % HASH_SIZE;
 }
@@ -80,6 +80,7 @@ int hash_to_array(ArtistNode **hash_table, ArtistCount *artists) {
     return n;
 }
 
+// Ordenar os artistas pelas contagens
 int comparar_contagem(const void *a, const void *b) {
     ArtistCount *pa = (ArtistCount *)a;
     ArtistCount *pb = (ArtistCount *)b;

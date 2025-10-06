@@ -233,7 +233,6 @@ int main(int argc, char *argv[]) {
         free(linha_copy);
     }
 
-    // Converte hash table para array
     PalavraContagem *palavras_locais = malloc(MAX_WORDS * sizeof(PalavraContagem));
     int num_palavras_local = hash_to_array(hash_table, palavras_locais);
 
@@ -241,12 +240,10 @@ int main(int argc, char *argv[]) {
            rank, minhas_linhas, total_palavras_processadas, num_palavras_local);
 
     if (rank == 0) {
-        // Processo 0 coleta palavras de todos os outros processos
         PalavraContagem *palavras_finais = malloc(MAX_WORDS * sizeof(PalavraContagem));
         int num_finais = 0;
         int total_palavras_geral = total_palavras_processadas;
         
-        // Adiciona suas próprias palavras
         for (int i = 0; i < num_palavras_local; i++) {
             int encontrada = 0;
             for (int j = 0; j < num_finais; j++) {
@@ -263,7 +260,6 @@ int main(int argc, char *argv[]) {
             }
         }
         
-        // Recebe palavras dos outros processos
         for (int proc = 1; proc < size; proc++) {
             int palavras_recebidas;
             int palavras_proc;
@@ -276,7 +272,6 @@ int main(int argc, char *argv[]) {
             MPI_Recv(palavras_proc_array, palavras_recebidas * sizeof(PalavraContagem), MPI_CHAR, 
                     proc, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             
-            // Adiciona palavras do processo
             for (int i = 0; i < palavras_recebidas; i++) {
                 int encontrada = 0;
                 for (int j = 0; j < num_finais; j++) {
@@ -296,14 +291,11 @@ int main(int argc, char *argv[]) {
             free(palavras_proc_array);
         }
 
-        // Ordenar
         qsort(palavras_finais, num_finais, sizeof(PalavraContagem), comparar_contagem);
 
-        printf("\n---- ESTATÍSTICAS GERAIS ----\n");
         printf("Palavras totais: %d\n", total_palavras_geral);
         printf("Palavras únicas: %d\n", num_finais);
         
-        printf("\n---- Ranking das palavras ----\n");
         for (int i = 0; i < 100 && i < num_finais; i++) {
             printf("%d. %s -> %d\n", i + 1, palavras_finais[i].palavra, palavras_finais[i].contagem);
         }

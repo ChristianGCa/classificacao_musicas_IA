@@ -34,7 +34,10 @@ compile:
 
 
 
-limpa:
+limpa: clean
+
+clean:
+	rm -f mostrar_musicas 1_1_contar_palavras_seq 1_2_contar_palavras_mpi 2_contar_musicas_mpi 3_contar_palavras_e_musicas_mpi ranking_palavras.csv
 	clear
 
 

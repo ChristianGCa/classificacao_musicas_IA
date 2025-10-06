@@ -10,7 +10,7 @@
 #define MAX_TEXT 10000000 // 10 MB
 #define MAX_WORD_LEN 128
 #define MAX_WORDS 100000
-#define HASH_SIZE 100003  // Tabela hash
+#define HASH_SIZE 100003
 
 typedef struct Word {
     char *text;
@@ -24,7 +24,6 @@ typedef struct {
     int contagem;
 } PalavraContagem;
 
-// NOVO: Estrutura para contar artistas
 typedef struct {
     char artista[MAX_WORD_LEN];
     int contagem;
@@ -63,7 +62,6 @@ void add_word(Word **hash_table, const char *w) {
         }
         node = node->next;
     }
-    // nova palavra
     Word *new_word = malloc(sizeof(Word));
     new_word->text = strdup(w);
     new_word->count = 1;
@@ -97,7 +95,6 @@ int hash_to_array(Word **hash_table, PalavraContagem *palavras) {
     return n;
 }
 
-// NOVO: Função para converter a hash table de artistas para um array
 int hash_to_artist_array(Word **hash_table, ArtistaContagem *artistas) {
     int n = 0;
     for (int i = 0; i < HASH_SIZE; i++) {
@@ -119,7 +116,6 @@ int comparar_contagem(const void *a, const void *b) {
     return pb->contagem - pa->contagem; // Ordem decrescente
 }
 
-// NOVO: Função de comparação para o ranking de artistas
 int comparar_contagem_artista(const void *a, const void *b) {
     ArtistaContagem *pa = (ArtistaContagem *)a;
     ArtistaContagem *pb = (ArtistaContagem *)b;
@@ -133,13 +129,11 @@ int main(int argc, char *argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // Inicializa tabela hash para PALAVRAS
     Word **hash_table = malloc(HASH_SIZE * sizeof(Word*));
     for (int i = 0; i < HASH_SIZE; i++) {
         hash_table[i] = NULL;
     }
 
-    // NOVO: Inicializa tabela hash para ARTISTAS
     Word **artist_hash_table = malloc(HASH_SIZE * sizeof(Word*));
     for (int i = 0; i < HASH_SIZE; i++) {
         artist_hash_table[i] = NULL;
@@ -152,7 +146,6 @@ int main(int argc, char *argv[]) {
     int num_linhas = 0;
 
     if (rank == 0) {
-        // Processo 0 lê o arquivo e conta linhas
         FILE *f = fopen("/home/christian/Documentos/CSVs_processados/spotify_millsongdata_SEM_QUEBRAS_LINHA.csv", "r");
         if (!f) {
             perror("Erro ao abrir arquivo");
@@ -160,7 +153,6 @@ int main(int argc, char *argv[]) {
         }
 
         char linha[8192];
-        // Lê a primeira linha descartando o cabeçalho
         fgets(linha, sizeof(linha), f);
         total_linhas = 1; // Cabeçalho
 
@@ -237,7 +229,6 @@ int main(int argc, char *argv[]) {
             int linha_idx = inicio_linha + i;
             strcpy(linha, linhas[linha_idx]);
         } else {
-            // Outros processos recebem a linha do processo 0
             MPI_Recv(linha, 8192, MPI_CHAR, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         }
 
@@ -249,7 +240,6 @@ int main(int argc, char *argv[]) {
         char *link   = strtok(NULL, ",");
         char *text   = strtok(NULL, ",");
 
-        // NOVO: Adiciona o artista na tabela hash de artistas
         if (artist) {
             add_word(artist_hash_table, artist);
         }
@@ -269,11 +259,9 @@ int main(int argc, char *argv[]) {
         free(linha_copy);
     }
 
-    // Converte hash table de PALAVRAS para array
     PalavraContagem *palavras_locais = malloc(MAX_WORDS * sizeof(PalavraContagem));
     int num_palavras_local = hash_to_array(hash_table, palavras_locais);
 
-    // NOVO: Converte hash table de ARTISTAS para array
     ArtistaContagem *artistas_locais = malloc(MAX_WORDS * sizeof(ArtistaContagem));
     int num_artistas_local = hash_to_artist_array(artist_hash_table, artistas_locais);
 
@@ -282,35 +270,26 @@ int main(int argc, char *argv[]) {
            rank, minhas_linhas, total_palavras_processadas, num_palavras_local, num_artistas_local);
 
     if (rank == 0) {
-        // --- AGREGAÇÃO DE PALAVRAS ---
         PalavraContagem *palavras_finais = malloc(MAX_WORDS * sizeof(PalavraContagem));
         int num_finais = 0;
         int total_palavras_geral = total_palavras_processadas;
         
-        // Adiciona suas próprias palavras
         for (int i = 0; i < num_palavras_local; i++) {
-            // Simplesmente copia as palavras do processo 0
             strcpy(palavras_finais[num_finais].palavra, palavras_locais[i].palavra);
             palavras_finais[num_finais].contagem = palavras_locais[i].contagem;
             num_finais++;
         }
         
-        // --- NOVO: AGREGAÇÃO DE ARTISTAS ---
         ArtistaContagem *artistas_finais = malloc(MAX_WORDS * sizeof(ArtistaContagem));
         int num_artistas_finais = 0;
 
-        // Adiciona seus próprios artistas
         for (int i = 0; i < num_artistas_local; i++) {
-            // Simplesmente copia os artistas do processo 0
             strcpy(artistas_finais[num_artistas_finais].artista, artistas_locais[i].artista);
             artistas_finais[num_artistas_finais].contagem = artistas_locais[i].contagem;
             num_artistas_finais++;
         }
 
-
-        // Recebe dados dos outros processos
         for (int proc = 1; proc < size; proc++) {
-            // Recebe PALAVRAS
             int palavras_recebidas;
             int palavras_proc;
             MPI_Recv(&palavras_recebidas, 1, MPI_INT, proc, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -321,8 +300,7 @@ int main(int argc, char *argv[]) {
             PalavraContagem *palavras_proc_array = malloc(palavras_recebidas * sizeof(PalavraContagem));
             MPI_Recv(palavras_proc_array, palavras_recebidas * sizeof(PalavraContagem), MPI_CHAR, 
                      proc, 2, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            
-            // Adiciona palavras do processo
+
             for (int i = 0; i < palavras_recebidas; i++) {
                 int encontrada = 0;
                 for (int j = 0; j < num_finais; j++) {
@@ -340,7 +318,6 @@ int main(int argc, char *argv[]) {
             }
             free(palavras_proc_array);
 
-            // NOVO: Recebe ARTISTAS
             int artistas_recebidos;
             MPI_Recv(&artistas_recebidos, 1, MPI_INT, proc, 3, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             
@@ -348,7 +325,6 @@ int main(int argc, char *argv[]) {
             MPI_Recv(artistas_proc_array, artistas_recebidos * sizeof(ArtistaContagem), MPI_CHAR,
                      proc, 4, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-            // Adiciona artistas do processo
             for (int i = 0; i < artistas_recebidos; i++) {
                 int encontrada = 0;
                 for (int j = 0; j < num_artistas_finais; j++) {
@@ -367,24 +343,20 @@ int main(int argc, char *argv[]) {
             free(artistas_proc_array);
         }
 
-        // Ordenar
         qsort(palavras_finais, num_finais, sizeof(PalavraContagem), comparar_contagem);
-        qsort(artistas_finais, num_artistas_finais, sizeof(ArtistaContagem), comparar_contagem_artista); // NOVO
+        qsort(artistas_finais, num_artistas_finais, sizeof(ArtistaContagem), comparar_contagem_artista);
 
-
-        printf("\n---- ESTATÍSTICAS GERAIS ----\n");
         printf("Palavras totais: %d\n", total_palavras_geral);
         printf("Palavras únicas: %d\n", num_finais);
-        printf("Artistas únicos: %d\n", num_artistas_finais); // NOVO
+        printf("Artistas únicos: %d\n", num_artistas_finais);
         
-        // NOVO: Exibe o ranking dos artistas
-        printf("\n---- Ranking dos Artistas por Número de Músicas ----\n");
+        printf("\nARTISTAS E NÚMERO DE MÚSICAS\n");
         for (int i = 0; i < 20 && i < num_artistas_finais; i++) {
             printf("%d. %s -> %d\n", i + 1, artistas_finais[i].artista, artistas_finais[i].contagem);
         }
 
 
-        printf("\n---- Ranking das palavras ----\n");
+        printf("\nAPARIÇÕES DE CADA PALAVRA\n");
         for (int i = 0; i < 20 && i < num_finais; i++) {
             printf("%d. %s -> %d\n", i + 1, palavras_finais[i].palavra, palavras_finais[i].contagem);
         }
@@ -395,21 +367,18 @@ int main(int argc, char *argv[]) {
         }
         free(linhas);
         free(palavras_finais);
-        free(artistas_finais); // NOVO
+        free(artistas_finais);
     } else {
-        // Envia PALAVRAS para o processo 0
         MPI_Send(&num_palavras_local, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
         MPI_Send(&total_palavras_processadas, 1, MPI_INT, 0, 1, MPI_COMM_WORLD);
         MPI_Send(palavras_locais, num_palavras_local * sizeof(PalavraContagem), MPI_CHAR, 
                  0, 2, MPI_COMM_WORLD);
 
-        // NOVO: Envia ARTISTAS para o processo 0 (usando tags diferentes)
         MPI_Send(&num_artistas_local, 1, MPI_INT, 0, 3, MPI_COMM_WORLD);
         MPI_Send(artistas_locais, num_artistas_local * sizeof(ArtistaContagem), MPI_CHAR,
                  0, 4, MPI_COMM_WORLD);
 
     }
-    // Liberar memória (em todos os processos)
     for (int i = 0; i < HASH_SIZE; i++) {
         Word *node = hash_table[i];
         while (node) {
@@ -418,7 +387,6 @@ int main(int argc, char *argv[]) {
             free(node);
             node = next;
         }
-        // NOVO: Limpa a tabela de artistas
         Word *artist_node = artist_hash_table[i];
         while(artist_node){
             Word *next = artist_node->next;
@@ -429,8 +397,8 @@ int main(int argc, char *argv[]) {
     }
     free(hash_table);
     free(palavras_locais);
-    free(artist_hash_table); // NOVO
-    free(artistas_locais);   // NOVO
+    free(artist_hash_table);
+    free(artistas_locais);
     
     MPI_Finalize();
     return 0;

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <signal.h> // Para lidar com sinais como Ctrl+C
+#include <signal.h>
 
 #define MAX_LINE 8192
 #define MAX_WORD 128
@@ -20,7 +20,7 @@ typedef struct Word {
 
 Word *hash_table[HASH_SIZE];
 
-// Função hash simples
+// Função hash
 unsigned long hash(const char *str) {
     unsigned long h = 5381;
     int c;
@@ -37,7 +37,6 @@ void cleanup_on_interrupt(int signum) {
     exit(signum);
 }
 
-// Adiciona palavra no hash
 void add_word(const char *w) {
     if (strlen(w) == 0) return;
 
@@ -58,7 +57,6 @@ void add_word(const char *w) {
     hash_table[idx] = new_word;
 }
 
-// Normaliza palavra (tudo minúsculo e remove pontuação nas bordas)
 void normalize(char *word) {
     char *src = word, *dst = word;
     while (*src) {
@@ -70,7 +68,6 @@ void normalize(char *word) {
     *dst = '\0';
 }
 
-// Divide texto em palavras e adiciona ao contador
 void process_text(char *text) {
     char *token = strtok(text, " \t\r\n");
     while (token) {
@@ -83,7 +80,6 @@ void process_text(char *text) {
     }
 }
 
-// Estrutura auxiliar para ordenar
 typedef struct {
     char *word;
     int count;
@@ -118,8 +114,7 @@ int main() {
         char *text   = strtok(NULL, ",");
 
         if (text) {
-            total_linhas++; // Só conta linhas que têm texto válido
-            // Conta palavras antes de processar
+            total_linhas++;
             char *temp_text = strdup(text);
             char *token = strtok(temp_text, " \t\r\n");
             while (token) {
@@ -134,7 +129,6 @@ int main() {
 
     fclose(file_pointer);
 
-    // Joga tudo em vetor para ordenar
     WordCount *arr = malloc(sizeof(WordCount) * 100000);
     int n = 0;
 
@@ -150,20 +144,17 @@ int main() {
 
     qsort(arr, n, sizeof(WordCount), compare);
 
-    printf("\n=== ESTATÍSTICAS GERAIS ===\n");
     printf("Linhas de dados processadas: %d\n", total_linhas - 1);
     printf("Total de palavras processadas: %d\n", total_palavras);
     printf("Palavras únicas encontradas: %d\n", n);
-    printf("\n=== Ranking das palavras ===\n");
-    for (int i = 0; i < 50 && i < n; i++) { // mostra top 50
+
+    for (int i = 0; i < 50 && i < n; i++) {
         printf("%d. %s -> %d\n", i + 1, arr[i].word, arr[i].count);
     }
 
-    // Salva o ranking em um arquivo CSV de forma segura
     strcpy(final_output_filename, "ranking_palavras.csv");
     sprintf(temp_output_filename, "%s.tmp", final_output_filename);
 
-    // Registra o manipulador de sinal para Ctrl+C
     signal(SIGINT, cleanup_on_interrupt);
 
     FILE *output_file = fopen(temp_output_filename, "w");
@@ -179,15 +170,14 @@ int main() {
     }
     fclose(output_file);
 
-    // Renomeia o arquivo temporário para o nome final (operação atômica)
     if (rename(temp_output_filename, final_output_filename) != 0) {
         perror("Erro ao renomear arquivo temporário para final");
-        remove(temp_output_filename); // Tenta limpar o temporário se a renomeação falhar
+        remove(temp_output_filename);
         free(arr);
         return 1;
     }
 
-    printf("\nRanking de palavras salvo com sucesso em '%s'\n", final_output_filename);
+    printf("\nRanking de palavras salvo em '%s'\n", final_output_filename);
 
     free(arr);
     return 0;
